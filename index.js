@@ -91,13 +91,13 @@ const processBoard = async () => {
 		liveBoardStats[board] = newBoardStats
 		activeThreads[board] = newActiveThreads
 
+		newBoardStats.imagesPerReply = cycleData.imagesPerReply // FIXME: a bit messy to kinda slide this in here
+
 		let toEmit = {
 			board,
 			newBoardStats,
 			newActiveThreads,
-			history:{
-				...affectedHistory
-			}
+			history: affectedHistory
 		}
 
 		io.emit("update",toEmit)

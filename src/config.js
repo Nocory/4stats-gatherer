@@ -5,7 +5,7 @@ const config = {
 
 	cycleTime: 1000 * 60 * 5, // time it takes to cycle through the list of boards
 
-	maxValidCycleLength : 1000 * 60 * 20, // cycles that are covering a time longer than this are ignored during stat calculations
+	maxValidCycleLength : 1000 * 60 * 33, // cycles that are covering a time longer than this are ignored during stat calculations
 
 	cachedHistoryLength : {
 		cycle: 1000 * 60 * 60 * 24 * 3,

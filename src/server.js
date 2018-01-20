@@ -1,14 +1,14 @@
 const pino = require('./pino')
 
-const app = require('express')()
-const server = require('http').Server(app)
+const expressApp = require('express')()
+const server = require('http').Server(expressApp)
 const io = require('socket.io')(server)
 
 const cors = require("cors")
 
-app.use(cors())
-app.use(require('helmet')())
-app.use(require('compression')()) // TODO: not needed? Maybe nginx handles it by itself
+expressApp.use(cors())
+expressApp.use(require('helmet')())
+expressApp.use(require('compression')()) // TODO: not needed? Maybe nginx handles it by itself
 
 server.listen(4002)
 
@@ -21,6 +21,6 @@ io.on('connection', socket => {
 })
 
 module.exports = {
-	expressApp : app,
+	expressApp,
 	io
 }
