@@ -3,15 +3,6 @@ const pino = require("./pino")
 
 module.exports = (board, catalog) => {
 	pino.trace("processCatalog /%s/",board)
-	const cycleData = {
-		time: Date.now(),
-		timeCovered: 0,
-		newPosts: 0,
-		newThreads: 0,
-		latestPostID: 0,
-		latestThreadID: 0,
-		postSpread: 0
-	}
 
 	const lastCycleArr = history.cachedHistory.getLastCycle(board)
 	const lastCycle =  {
@@ -22,8 +13,20 @@ module.exports = (board, catalog) => {
 		latestPostID: lastCycleArr[4],
 		latestThreadID: lastCycleArr[5]
 	}
+
+	const cycleData = {
+		time: Date.now(),
+		timeCovered: 0,
+		newPosts: 0,
+		newThreads: 0,
+		latestPostID: 0,
+		latestThreadID: 0,
+		imagesPerReply: 0
+	}
 	cycleData.timeCovered = cycleData.time - lastCycle.time
 
+	let totalReplyCount = 0
+	let totalImageCount = 0
 	const threadList = []
 	const prevlatestThreadID = lastCycle.latestThreadID || lastCycle.latestPostID
 	
@@ -43,9 +46,13 @@ module.exports = (board, catalog) => {
 					com: thread.com || "",
 					image: `https://i.4cdn.org/${board}/${thread.tim}s.jpg`
 				})
+				totalReplyCount += thread.replies
+				totalImageCount += thread.images
 			}
 		}
 	}
+
+	cycleData.imagesPerReply = totalImageCount / totalReplyCount
 
 	// sometimes when a post on very slow boards os removed, the post rate could become negative
 	cycleData.latestPostID = Math.max(cycleData.latestPostID,lastCycle.latestPostID)
