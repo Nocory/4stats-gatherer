@@ -24,7 +24,7 @@ const init = async () => {
 		triggerTime[board] = {}
 		for(let term of [{
 			name: "day",
-			advanceTime: 1000 * 60 * 60 * 24
+			advanceTime: 1000 * 60 * 60 * 24 * 2 // advance 2 days since savetime is at the start of the covered period and trigger at the end
 		},{
 			name: "hour",
 			advanceTime: 1000 * 60 * 90

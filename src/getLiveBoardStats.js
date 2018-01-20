@@ -29,7 +29,8 @@ let getAvgPostsPerDay = (board,hourHistory) => {
 	let latestTime = hourHistory[hourHistory.length - 1].time
 	for(let entry of hourHistory){
 		let weeksAgo = Math.floor((latestTime - entry.time) / (1000*60*60*24*7))
-		let weight = Math.max(0,1 - weeksAgo / 2)
+		let weight = Math.max(0,1 - weeksAgo / 6)
+		//pino.debug(board,weeksAgo,weight)
 		totalPosts += entry.postCount * weight
 		totalWeight += weight
 	}
