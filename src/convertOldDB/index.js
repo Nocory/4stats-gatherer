@@ -16,7 +16,7 @@ const normalArrayCodec = {
 	buffer: true
 }
 
-const db_old = require('level')('./db_backup_20180115', {
+const db_old = require('level')('./db_backup_20180116_b', {
 	valueEncoding: "json",
 	cacheSize: 8 * 1024 * 1024
 })
