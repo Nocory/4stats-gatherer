@@ -49,12 +49,12 @@ module.exports = async board => {
 			}
 			return response.data
 		}catch(err){
-			if(attempt == 3) throw new Error(err)
-			let nextFetch = fetchTime + 5000 - Date.now()
-			pino.warn(err,"getCatalog for /%s/, fetching again in %dms",board,Math.max(0,nextFetch))
+			if(attempt == 3) throw `Failed the final attempt to fetch catalog of /${board}/`
+			let delay = fetchTime + 5000 - Date.now()
+			pino.warn(`${err.message} getCatalog /${board}/ fetching again in ${Math.max(1000,delay)}ms`)
 			
 			await new Promise(resolve => {
-				setTimeout(resolve,nextFetch)
+				setTimeout(resolve,delay)
 			})
 		}
 	}

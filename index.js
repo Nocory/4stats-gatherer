@@ -135,7 +135,7 @@ const main = async () => {
 		const delayBetweenBoards = Math.max(2000,config.cycleTime / config.boardList.length)
 		setInterval(processBoard,delayBetweenBoards)
 	}catch(err){
-		pino.error(err,"main")
+		pino.error(err)
 	}
 	//getBoard(Math.max(0, config.boardList.indexOf(oldestLastCycle.board))) // still start from 0 in case board is no longer in the configuration
 }

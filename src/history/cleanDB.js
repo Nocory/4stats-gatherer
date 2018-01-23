@@ -25,12 +25,12 @@ const cleanDB = async board => {
 		/*
 		if(cycleOps.length || hourOps.length){
 			db.batch([...cycleOps,...hourOps], err => {
-				if (err) pino.error(err,"cleanDB batch")
+				if (err) pino.error(err)
 			})
 		}
 		*/
 	}catch(err){
-		pino.error(err,"cleanDB for /%s/",board)
+		pino.error(err)
 	}
 }
 

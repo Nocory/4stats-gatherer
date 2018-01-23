@@ -143,10 +143,9 @@ const saveCycle = (board,cycleData) => {
 	pino.debug("saveCycleToDB /%s/ batching %d %j",board,putOps.length,putOps)
 	if(putOps.length){
 		db.batch(putOps,err => {
-			if (err) pino.error(err,"saveCycleToDB batch /%s/ %j",board,putOps)
+			if (err) pino.error(err)
 		})
 	}
-	
 	return affectedHistory
 }
 
