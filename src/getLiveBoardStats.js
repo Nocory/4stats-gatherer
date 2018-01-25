@@ -106,7 +106,7 @@ module.exports = board => {
 	if(hourlyHistory.length){
 		result.avgPostsPerDay = getAvgPostsPerDay(board,hourlyHistory)
 		result.topPPM = getTopPPM(board,hourlyHistory)
-		result.relativeActivity = result.postsPerMinute / result.topPPM - (result.avgPostsPerDay < 2500 ? 1000000 : 0)
+		result.relativeActivity = result.postsPerMinute / result.topPPM
 	}
 
 	pino.trace("getLiveBoardStats /%s/ result",board,result)
