@@ -41,10 +41,11 @@ module.exports = (board, catalog) => {
 					no: thread.no,
 					age: cycleData.time - thread.tim,
 					postsPerMinute: cycleData.time - thread.tim > 300000 && thread.replies > 5 ? thread.replies / ((cycleData.time - thread.tim) / 60000) : -1, //dont add ultra-new threads to activity list
-					replies: thread.sticky ? 9001 : thread.replies,
+					replies: thread.replies,
 					sub: thread.sub || "",
 					com: thread.com || "",
-					image: `https://i.4cdn.org/${board}/${thread.tim}s.jpg`
+					image: `https://i.4cdn.org/${board}/${thread.tim}s.jpg`,
+					sticky: thread.sticky
 				})
 				totalReplyCount += thread.replies
 				totalImageCount += thread.images
