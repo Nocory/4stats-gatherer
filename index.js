@@ -105,7 +105,22 @@ const processBoard = async () => {
 		pino.trace("- - - - - /%s/ END - - - - - -",board)
 	}catch(err){
 		pino.error(err)
+		io.emit("gathererError",err)
+
+
+
 	}
+
+	//const newBoardStats = getLiveBoardStats(board)
+	//liveBoardStats[board] = newBoardStats
+	//newBoardStats.imagesPerReply = cycleData.imagesPerReply || liveBoardStats[board].imagesPerReply
+
+	io.emit("update",{
+		board,
+		newBoardStats,
+		newActiveThreads: null,
+		history: {}
+	})
 }
 
 const main = async () => {

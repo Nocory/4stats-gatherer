@@ -56,7 +56,7 @@ module.exports = board => {
 	}))
 
 	const lastCycleTime = history.cachedHistory.getLastCycle(board)[0]
-	const earliestTime = lastCycleTime - config.boardStatsTime
+	const earliestTime = Math.max(lastCycleTime - config.boardStatsTime,Date.now() - (config.boardStatsTime + config.cycleTime))
 
 	pino.debug("getLiveBoardStats /%s/ Cycle and Hourly lenght %j",board,[cycleHistory.length,hourlyHistory.length])
 
@@ -88,8 +88,8 @@ module.exports = board => {
 
 	// only continue if some data has been gathered
 	const result = {
-		postsPerMinute: -1,
-		threadsPerHour: -1,
+		postsPerMinute: -0,
+		threadsPerHour: -0,
 		avgPostsPerDay: -1,
 		topPPM: -1,
 		relativeActivity: -1

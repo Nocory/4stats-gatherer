@@ -69,7 +69,7 @@ const calcLongTerm = (board,term) => {
 		postCount += cycleStats.newPosts * insideRatio
 	}
 
-	if(timeCovered > term.coverLength * 0.8){
+	if(timeCovered > term.coverLength * 0.67){
 		let extrapolate = term.coverLength / timeCovered
 		
 		timeCovered *= extrapolate
