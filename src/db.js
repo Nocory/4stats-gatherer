@@ -32,7 +32,7 @@ const db = require('level')('./db', {
 	keyEncoding: require("bytewise"),
 	//valueEncoding: "json",
 	valueEncoding: normalArrayCodec,
-	cacheSize: 256 * 1024 * 1024
+	cacheSize: 128 * 1024 * 1024
 })
 
 module.exports = db

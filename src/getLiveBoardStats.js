@@ -14,79 +14,82 @@ const calculateDevelopment = board => {
 	return thisMonth.reduce((acc,val) => acc + val.postCount,0) / thisMonth.length / (prevMonth.reduce((acc,val) => acc + val.postCount,0) / prevMonth.length)
 }
 */
-let getTopPPM = (board,hourHistory) => {
+let getTopPPM = board => {
 	pino.trace("getTopPPM /%s/",board)
+	const hourHistory = history.cachedHistory.get(board,"hour").slice()
 	const percentile = 0.90 // percentile has to be >= 0.00 and < 1.00. A value of 1.00 will result in an out of bounds error.
-	hourHistory.sort((a,b) => a.postsPerMinute - b.postsPerMinute)
+	hourHistory.sort((a,b) => a[3] - b[3])
 	const resIndex = Math.floor(hourHistory.length * percentile)
-	return hourHistory[resIndex].postsPerMinute
+	return hourHistory[resIndex][3]
 }
 
-let getAvgPostsPerDay = (board,hourHistory) => {
+let getAvgPPMThisTime = async (board,cycleTo) => {
+	pino.trace("getAvgPPMThisTime /%s/",board)
+	let entries = []
+	for(let i = 1; i <= 8; i++){
+		entries.push(...(await history.getDataFromDB(board,"cycle",cycleTo - 1000 * 60 * 60 * 24 * i - config.boardStatsTime,cycleTo - 1000 * 60 * 60 * 24 * i + 1000 * 60 * 1)))
+	}
+
+	const debugTimeDiff = entries.map((x,index,arr) => {
+		if(index){
+			return (arr[index][0] - arr[index-1][0]) / (1000 * 60)
+		}else{
+			return 0
+		}
+	})
+
+	entries = entries.map(x => x[2] / (x[1] / (1000 * 60)))
+	entries.sort((a,b) => a - b)
+	
+	if(entries.length >= 3){
+		entries = entries.slice((entries.length-1) / 2,(-entries.length+1) / 2)
+	}
+
+	const result = entries.reduce((acc,val) => acc + val / entries.length,0)
+	
+	return result
+}
+
+const getAvgPostsPerDay = async (board,cycleTo) => {
 	pino.trace("getAvgPostsPerDay /%s/",board)
-	let totalPosts = 0
-	let totalWeight = 0
-	let latestTime = hourHistory[hourHistory.length - 1].time
-	for(let entry of hourHistory){
-		let weeksAgo = Math.floor((latestTime - entry.time) / (1000*60*60*24*7))
-		let weight = Math.max(0,1 - weeksAgo / 6)
-		//pino.debug(board,weeksAgo,weight)
-		totalPosts += entry.postCount * weight
-		totalWeight += weight
+	let lastCycle = history.cachedHistory.getLastCycle(board)
+	if(lastCycle[0] != cycleTo){
+		lastCycle = await history.getDataFromDB(board,"cycle",0,cycleTo,1,reverse)[0]
+		lastCycle[0] = cycleTo
 	}
-	//pino.warn(board,totalPosts / totalWeight * 24)
-	return totalPosts / totalWeight * 24
+
+	const weekEntries = [lastCycle]
+	for(let i = 1; i <= 4; i++){
+		weekEntries.push((await history.getDataFromDB(board,"cycle",cycleTo - 1000 * 60 * 60 * 24 * 7 * i,Number.MAX_SAFE_INTEGER,1))[0])
+	}
+	
+	let totalPosts = 0
+	let totalDuration = 0
+	let totalWeight = 0
+	//console.log(weekEntries.length)
+	for(let i = 0; i < weekEntries.length - 1; i++){
+		let weight = Math.max(0,1 - i / 6)
+
+		let start = weekEntries[i]
+		let end = weekEntries[i+1]
+
+		let postCount = start[4] - end[4]
+		let duration = start[0] - end[0]
+
+		totalPosts += postCount * weight
+		totalDuration += duration * weight
+
+		if(board == "biz") console.log(i, duration / (1000 * 60 * 60 * 24))
+	}
+	
+	if(board == "biz") console.log(board,totalPosts,totalDuration,(totalDuration / (1000 * 60 * 60 * 24)))
+	
+	return totalPosts * ((1000 * 60 * 60 * 24) / totalDuration)
 }
 
-module.exports = board => {
+module.exports = async (board,cycleTo) => {
 	pino.trace("getLiveBoardStats /%s/",board)
-	
-	let cycleHistory = history.cachedHistory.get(board,"cycle").map(el => ({
-		time: el[0],
-		timeCovered: el[1],
-		postCount: el[2],
-		threadCount: el[3]
-	}))
 
-	let hourlyHistory = history.cachedHistory.get(board,"hour").map(el => ({
-		time: el[0],
-		timeCovered: el[1],
-		postCount: el[2],
-		postsPerMinute: el[3]
-	}))
-
-	const lastCycleTime = history.cachedHistory.getLastCycle(board)[0]
-	const earliestTime = Math.max(lastCycleTime - config.boardStatsTime,Date.now() - (config.boardStatsTime + config.cycleTime))
-
-	pino.debug("getLiveBoardStats /%s/ Cycle and Hourly lenght %j",board,[cycleHistory.length,hourlyHistory.length])
-
-	const research = {
-		timeCovered: 0,
-		postCount: 0,
-		threadCount: 0
-	}
-	
-	for(let i = cycleHistory.length - 1; i >= 0; i--){
-		let cycleData = cycleHistory[i]
-
-		if(cycleData.time < earliestTime) break
-		if(cycleData.timeCovered > config.maxValidCycleLength) continue
-		//const dataStartTime = data.time - data.timeCovered
-		const overTime = earliestTime - (cycleData.time - cycleData.timeCovered)
-		let validRatio = 1 - overTime / cycleData.timeCovered
-		validRatio = Math.max(0,Math.min(validRatio,1)) //Math.max should not be needed really
-		
-		research.timeCovered += cycleData.timeCovered * validRatio
-		research.postCount += cycleData.postCount * validRatio
-		research.threadCount += cycleData.threadCount * validRatio
-		
-		if(config.debugBoardList.includes(board)) pino.debug("getLiveBoardStats %j",{board,validRatio,timeCovered:cycleData.timeCovered})
-	}
-
-	if(config.debugBoardList.includes(board)) pino.debug("getLiveBoardStats %j",{board,totalTimeCovered:research.timeCovered})
-	
-
-	// only continue if some data has been gathered
 	const result = {
 		postsPerMinute: -0,
 		threadsPerHour: -0,
@@ -96,21 +99,41 @@ module.exports = board => {
 		//postCountDevelopment: -1 || calculateDevelopment(board)
 	}
 
-	if(research.timeCovered){
-		result.postsPerMinute = research.postCount / (research.timeCovered / 1000 / 60)
-		result.threadsPerHour = research.threadCount / (research.timeCovered / 1000 / 60 / 60)
-	}else{
-		pino.warn("getLiveBoardStats /%s/ research.timeCovered is 0. This is ok, if this is the first cycle.",board)
+	const cycles = history.cachedHistory.get(board,"cycle")
+
+	let postsCount = 0
+	let postDuration = 0
+
+	let threadCount = 0
+	let threadDuration = 0
+
+	for(let i = cycles.length - 1; i >= 0; i--){
+		if(cycles[i][0] > cycleTo - config.boardStatsTime){
+			postsCount += cycles[i][2]
+			postDuration += cycles[i][1]
+		}
+		if(cycles[i][0] > cycleTo - 1000 * 60 * 61){
+			threadCount += cycles[i][3]
+			threadDuration += cycles[i][1]
+		}
+
+		if(cycles[i][0] < cycleTo - 1000 * 60 * 61) break
 	}
 
-	if(hourlyHistory.length){
-		result.avgPostsPerDay = getAvgPostsPerDay(board,hourlyHistory)
-		result.topPPM = getTopPPM(board,hourlyHistory)
-		result.relativeActivity = result.postsPerMinute / result.topPPM
+	if(postsCount){
+		result.postsPerMinute = postsCount / (postDuration / (1000 * 60))
 	}
+
+	if(threadCount){
+		result.threadsPerHour = threadCount * ((1000 * 60 * 60) / threadDuration)
+	}
+	
+	result.avgPostsPerDay = await getAvgPostsPerDay(board,cycleTo)
+	result.topPPM = getTopPPM(board)
+	result.relativeActivity = result.postsPerMinute / result.topPPM
+	result.activityThisToD = result.postsPerMinute / await getAvgPPMThisTime(board,cycleTo)
 
 	pino.trace("getLiveBoardStats /%s/ result",board,result)
 	
-	//liveBoardStats[board] = result
 	return result
 }

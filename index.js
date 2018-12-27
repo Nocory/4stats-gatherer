@@ -24,8 +24,9 @@ const initAPI = () => {
 			liveBoardStats,
 			activeThreads,
 			history : {
+				cycle : history.cachedHistory.getAll("cycle"),
 				hour : history.cachedHistory.getAll("hour"),
-				day : history.cachedHistory.getAll("day")
+				day : history.cachedHistory.getAll("day"),
 			}
 		})
 	})
@@ -36,8 +37,9 @@ const initAPI = () => {
 			liveBoardStats,
 			activeThreads,
 			history : {
+				cycle : history.cachedHistory.getAll("cycle"),
 				hour : history.cachedHistory.getAll("hour"),
-				day : history.cachedHistory.getAll("day")
+				day : history.cachedHistory.getAll("day"),
 			}
 		})
 	})
@@ -47,6 +49,7 @@ const initAPI = () => {
 		liveBoardStats,
 		activeThreads,
 		history : {
+			cycle : history.cachedHistory.getAll("cycle"),
 			hour : history.cachedHistory.getAll("hour"),
 			day : history.cachedHistory.getAll("day")
 		}
@@ -81,46 +84,43 @@ const processBoard = async () => {
 	if (boardIndex == 0) bandwidthMonitor.startNewCycle()
 	let board = config.boardList[boardIndex]
 	boardIndex = (boardIndex + 1) % config.boardList.length
+
+	let catalogResult = {}
+
 	try{
-		const catalog = await getCatalog(board)
 		pino.trace("- - - - - /%s/ START - - - - -",board)
-		const {cycleData,threadList} = processCatalog(board,catalog)
-		const affectedHistory = history.saveCycle(board,cycleData)
-		const newBoardStats = getLiveBoardStats(board)
-		const newActiveThreads = getActiveThreads(threadList)
-		liveBoardStats[board] = newBoardStats
-		activeThreads[board] = newActiveThreads
-
-		newBoardStats.imagesPerReply = cycleData.imagesPerReply // FIXME: a bit messy to kinda slide this in here
-
-		let toEmit = {
-			board,
-			newBoardStats,
-			newActiveThreads,
-			history: affectedHistory
-		}
-
-		io.emit("update",toEmit)
-		if(Object.keys(toEmit.history).length) pino.debug("io.emit /%s/ history keys: %j",board,Object.keys(toEmit.history))
+		const catalog = await getCatalog(board)
+		catalogResult = processCatalog(board,catalog)
+		await history.saveCycle(board,catalogResult.cycleData)
+		//if(Object.keys(toEmit.history).length) pino.debug("io.emit /%s/ history keys: %j",board,Object.keys(toEmit.history))
 		pino.trace("- - - - - /%s/ END - - - - - -",board)
 	}catch(err){
 		pino.error(err)
 		io.emit("gathererError",err)
-
-
-
 	}
-
-	//const newBoardStats = getLiveBoardStats(board)
-	//liveBoardStats[board] = newBoardStats
-	//newBoardStats.imagesPerReply = cycleData.imagesPerReply || liveBoardStats[board].imagesPerReply
-
-	io.emit("update",{
-		board,
-		newBoardStats,
-		newActiveThreads: null,
-		history: {}
-	})
+	// This always runs, even if 4chan servers error out
+	// TODO: check if time crossed the hour/day mark and calculate a new longterm entry
+	//affectedHistory = history.saveCycle(board,catalogResult.cycleData)
+	try{
+		const affectedHistory = history.calcLongTerm(board,catalogResult.cycleData ? catalogResult.cycleData.time : Date.now())
+		
+		const newBoardStats = await getLiveBoardStats(board,catalogResult.cycleData ? catalogResult.cycleData.time : Date.now())
+		newBoardStats.imagesPerReply = catalogResult.cycleData ? catalogResult.cycleData.imagesPerReply : liveBoardStats[board].imagesPerReply
+		liveBoardStats[board] = newBoardStats
+		
+		const newActiveThreads = catalogResult.threadList ? getActiveThreads(catalogResult.threadList) : activeThreads[board]
+		activeThreads[board] = newActiveThreads
+		
+		io.emit("update",{
+			board,
+			newBoardStats,
+			newActiveThreads,
+			history: affectedHistory
+		})
+	}catch(err){
+		pino.error(err)
+		io.emit("gathererError",err)
+	}
 }
 
 const main = async () => {
@@ -139,7 +139,7 @@ const main = async () => {
 				oldestLastCycle.board = board
 				oldestLastCycle.time = cycleTime
 			}
-			liveBoardStats[board] = getLiveBoardStats(board)
+			liveBoardStats[board] = await getLiveBoardStats(board,cycleTime)
 		}
 		boardIndex = Math.max(0, config.boardList.indexOf(oldestLastCycle.board))
 		pino.info("Finished determining oldest board and calculating stats for all boards")
@@ -152,7 +152,7 @@ const main = async () => {
 	}catch(err){
 		pino.error(err)
 	}
-	//getBoard(Math.max(0, config.boardList.indexOf(oldestLastCycle.board))) // still start from 0 in case board is no longer in the configuration
+	// // //getBoard(Math.max(0, config.boardList.indexOf(oldestLastCycle.board))) // still start from 0 in case board is no longer in the configuration
 }
 
 pino.info("process.env.NODE_ENV is %s",process.env.NODE_ENV)

@@ -10,10 +10,10 @@ const config = {
 	cachedHistoryLength : {
 		cycle: 1000 * 60 * 60 * 24 * 3,
 		hour: 1000 * 60 * 60 * 24 * 28,
-		day: 1000 * 60 * 60 * 24 * 365 * 10,
+		day: 1000 * 60 * 60 * 24 * 365 * 20,
 	},
 	
-	boardStatsTime: 1000 * 60 * 60, // time to go back in history to calculate board stats
+	boardStatsTime: 1000 * 60 * 26, // time to go back in history to calculate board stats
 	
 	popularThreads: 8,
 	//noDubsBoards: ["v","vg","vr"], //handled client side instead

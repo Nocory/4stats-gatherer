@@ -10,7 +10,7 @@ module.exports = (board,term,from = 0,to = Number.MAX_SAFE_INTEGER,limit = -1,re
 			lte: [board,term,to],
 			limit,
 			reverse,
-			fillCache : false
+			fillCache : true
 		})
 			.on("data",data=>{
 				resultArr.push(data)
