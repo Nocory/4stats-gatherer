@@ -102,7 +102,7 @@ const processBoard = async () => {
 	// TODO: check if time crossed the hour/day mark and calculate a new longterm entry
 	//affectedHistory = history.saveCycle(board,catalogResult.cycleData)
 	try{
-		const affectedHistory = history.calcLongTerm(board,catalogResult.cycleData ? catalogResult.cycleData.time : Date.now())
+		const affectedHistory = await history.calcLongTerm(board,catalogResult.cycleData ? catalogResult.cycleData.time : Date.now())
 		
 		const newBoardStats = await getLiveBoardStats(board,catalogResult.cycleData ? catalogResult.cycleData.time : Date.now())
 		newBoardStats.imagesPerReply = catalogResult.cycleData ? catalogResult.cycleData.imagesPerReply : liveBoardStats[board].imagesPerReply
@@ -119,7 +119,7 @@ const processBoard = async () => {
 		})
 	}catch(err){
 		pino.error(err)
-		io.emit("gathererError",err)
+		io.emit("gathererError",err.message)
 	}
 }
 

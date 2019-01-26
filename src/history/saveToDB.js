@@ -50,8 +50,6 @@ const saveCycle = async (board,cycleData) => {
 	await db.put([board,"cycle",cycleData.time],cycleDBArr)
 }
 
-let singleDebug = false;
-
 const calcLongTerm = async (board,cycleTo) => {
 	const affectedHistory = {}
 
@@ -81,7 +79,12 @@ const calcLongTerm = async (board,cycleTo) => {
 			let prevTermCycle = cachedHistory.getLastTermCycle(board,term.name)
 			let lastCycle = cachedHistory.getLastCycle(board)
 			if(lastCycle[0] != cycleTo){
+				pino.warn(`calcLongTerm /${board}/ lastCycle[0] != cycleTo`)
 				lastCycle = (await getDataFromDB(board,"cycle",0,cycleTo,1,true))[0]
+				if(!lastCycle || !lastCycle.length){
+					pino.error(`calcLongTerm /${board}/ !lastCycle. cycleTo: ${cycleTo}, lastCycle: ${lastCycle}`)
+					throw new Error(`calcLongTerm /${board}/ !lastCycle. cycleTo: ${cycleTo}, lastCycle: ${lastCycle}`)
+				}
 				lastCycle[0] = cycleTo // Use the current time to make up a new cycle from previous data
 			}
 

@@ -27,7 +27,7 @@ let getAvgPPMThisTime = async (board,cycleTo) => {
 	pino.trace("getAvgPPMThisTime /%s/",board)
 	let entries = []
 	for(let i = 1; i <= 8; i++){
-		entries.push(...(await history.getDataFromDB(board,"cycle",cycleTo - 1000 * 60 * 60 * 24 * i - config.boardStatsTime,cycleTo - 1000 * 60 * 60 * 24 * i + 1000 * 60 * 1)))
+		entries.push(...(await history.getDataFromDB(board,"cycle",(cycleTo - 1000 * 60 * 60 * 24 * i) - config.boardStatsTime,(cycleTo - 1000 * 60 * 60 * 24 * i) + 1000 * 60 * 1)))
 	}
 
 	const debugTimeDiff = entries.map((x,index,arr) => {
@@ -54,13 +54,18 @@ const getAvgPostsPerDay = async (board,cycleTo) => {
 	pino.trace("getAvgPostsPerDay /%s/",board)
 	let lastCycle = history.cachedHistory.getLastCycle(board)
 	if(lastCycle[0] != cycleTo){
-		lastCycle = await history.getDataFromDB(board,"cycle",0,cycleTo,1,reverse)[0]
+		pino.warn(`getAvgPostsPerDay /${board}/ lastCycle[0] != cycleTo`)
+		lastCycle = (await history.getDataFromDB(board,"cycle",0,cycleTo,1,true))[0]
+		if(!lastCycle || !lastCycle.length){
+			pino.error(`getAvgPostsPerDay /${board}/ !lastCycle. cycleTo: ${cycleTo}, lastCycle: ${lastCycle}`)
+			throw new Error(`getAvgPostsPerDay /${board}/ !lastCycle. cycleTo: ${cycleTo}, lastCycle: ${lastCycle}`)
+		}
 		lastCycle[0] = cycleTo
 	}
 
 	const weekEntries = [lastCycle]
 	for(let i = 1; i <= 4; i++){
-		weekEntries.push((await history.getDataFromDB(board,"cycle",cycleTo - 1000 * 60 * 60 * 24 * 7 * i,Number.MAX_SAFE_INTEGER,1))[0])
+		weekEntries.push(...(await history.getDataFromDB(board,"cycle",cycleTo - 1000 * 60 * 60 * 24 * 7 * i,Number.MAX_SAFE_INTEGER,1)))
 	}
 	
 	let totalPosts = 0
@@ -131,7 +136,8 @@ module.exports = async (board,cycleTo) => {
 	result.avgPostsPerDay = await getAvgPostsPerDay(board,cycleTo)
 	result.topPPM = getTopPPM(board)
 	result.relativeActivity = result.postsPerMinute / result.topPPM
-	result.activityThisToD = result.postsPerMinute / await getAvgPPMThisTime(board,cycleTo)
+	result.activityThisToD = result.postsPerMinute / await getAvgPPMThisTime(board,cycleTo) // low activity boards can return 0 here
+	if(!Number.isFinite(result.activityThisToD)) result.activityThisToD = 0 // fixing if variable doesn't contain an actual number
 
 	pino.trace("getLiveBoardStats /%s/ result",board,result)
 	
